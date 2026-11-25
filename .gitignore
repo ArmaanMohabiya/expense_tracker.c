@@ -1,0 +1,9 @@
+# local database, secret key and other machine-specific files
+instance/
+*.db
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/

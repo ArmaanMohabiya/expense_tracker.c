@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Student Expense Tracker{% endblock %}
+{% block header_right %}
+<div class="user-box">
+  <span class="muted">Signed in as <strong>{{ username }}</strong></span>
+  <button class="btn secondary small" type="button" id="change-password">Change password</button>
+  <button class="btn secondary small" type="button" id="logout">Log out</button>
+</div>
+{% endblock %}
+
+{% block content %}
+<section class="summary" aria-label="Summary">
+  <div class="card stat">
+    <span class="stat-label">Total spent</span>
+    <span class="stat-value" id="stat-total">&#8377;0.00</span>
+  </div>
+  <div class="card stat">
+    <span class="stat-label">Expenses</span>
+    <span class="stat-value" id="stat-count">0</span>
+  </div>
+  <div class="card breakdown-card">
+    <h2>By category</h2>
+    <ul class="breakdown" id="breakdown"></ul>
+  </div>
+</section>
+
+<section class="insights" aria-label="Budget and trend">
+  <div class="card" aria-labelledby="budget-title">
+    <div class="card-head">
+      <h2 id="budget-title">Monthly budget</h2>
+      <div class="month-nav">
+        <button type="button" class="btn secondary small icon" id="budget-prev" aria-label="Previous month">&#8249;</button>
+        <span id="budget-month" class="month-label"></span>
+        <button type="button" class="btn secondary small icon" id="budget-next" aria-label="Next month">&#8250;</button>
+      </div>
+    </div>
+    <div class="progress none" id="budget-progress" role="progressbar" aria-labelledby="budget-title" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <span id="budget-fill"></span>
+    </div>
+    <p id="budget-text" class="budget-text" aria-live="polite"></p>
+    <form id="budget-form" class="budget-form" novalidate>
+      <div class="field">
+        <label for="budget-limit">Set budget (&#8377;)</label>
+        <input id="budget-limit" type="number" inputmode="decimal" step="0.01" min="0.01" placeholder="e.g. 4000">
+      </div>
+      <button class="btn" type="submit">Save</button>
+      <button class="btn secondary" type="button" id="budget-remove" hidden>Remove</button>
+    </form>
+    <p id="budget-message" class="msg" role="status" aria-live="polite"></p>
+  </div>
+  <div class="card" aria-labelledby="trend-title">
+    <h2 id="trend-title">Last 6 months</h2>
+    <div class="trend" id="trend" role="img" aria-label="Spending per month"></div>
+  </div>
+</section>
+
+<section class="card" aria-labelledby="add-title">
+  <h2 id="add-title">Add an expense</h2>
+  <form id="add-form" class="expense-form" novalidate>
+    <div class="field">
+      <label for="add-date">Date</label>
+      <input id="add-date" name="date" type="date" min="2000-01-01" max="2100-12-31" required>
+    </div>
+    <div class="field">
+      <label for="add-category">Category</label>
+      <select id="add-category" name="category" required>
+        {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="add-amount">Amount (&#8377;)</label>
+      <input id="add-amount" name="amount" type="number" inputmode="decimal" step="0.01" min="0.01" placeholder="0.00" required>
+    </div>
+    <div class="field wide">
+      <label for="add-note">Note <span class="muted">(optional)</span></label>
+      <input id="add-note" name="note" type="text" maxlength="100" placeholder="e.g. Lunch at canteen">
+    </div>
+    <div class="field action">
+      <button class="btn" type="submit">Add expense</button>
+    </div>
+  </form>
+  <p id="add-message" class="msg" role="status" aria-live="polite"></p>
+</section>
+
+<section class="card" aria-labelledby="list-title">
+  <div class="list-head">
+    <h2 id="list-title">Your expenses</h2>
+    <form id="filter-form" class="filters">
+      <div class="field">
+        <label for="filter-from">From</label>
+        <input id="filter-from" type="date">
+      </div>
+      <div class="field">
+        <label for="filter-to">To</label>
+        <input id="filter-to" type="date">
+      </div>
+      <div class="field">
+        <label for="filter-category">Category</label>
+        <select id="filter-category">
+          <option value="">All</option>
+          {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field search">
+        <label for="filter-q">Search notes</label>
+        <input id="filter-q" type="search" maxlength="50" placeholder="e.g. lunch" autocomplete="off">
+      </div>
+      <div class="field action">
+        <button class="btn secondary small" type="button" id="btn-month">This month</button>
+        <button class="btn secondary small" type="button" id="btn-clear">Clear</button>
+        <a class="btn secondary small" id="export-link" href="/api/expenses.csv" download>Export CSV</a>
+      </div>
+    </form>
+  </div>
+
+  <p id="page-message" class="msg" role="status" aria-live="polite"></p>
+  <div class="table-wrap">
+    <table id="expense-table" hidden>
+      <thead>
+        <tr><th>Date</th><th>Category</th><th>Note</th><th class="num">Amount</th><th><span class="sr-only">Actions</span></th></tr>
+      </thead>
+      <tbody id="expense-rows"></tbody>
+    </table>
+  </div>
+  <p id="empty" class="empty" hidden>No expenses found. Add your first one above.</p>
+  <p id="table-summary" class="muted table-summary"></p>
+</section>
+
+<dialog id="edit-dialog" aria-labelledby="edit-title">
+  <form id="edit-form" class="dialog-form" novalidate>
+    <h2 id="edit-title">Edit expense</h2>
+    <div class="field">
+      <label for="edit-date">Date</label>
+      <input id="edit-date" name="date" type="date" min="2000-01-01" max="2100-12-31" required>
+    </div>
+    <div class="field">
+      <label for="edit-category">Category</label>
+      <select id="edit-category" name="category" required>
+        {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="edit-amount">Amount (&#8377;)</label>
+      <input id="edit-amount" name="amount" type="number" inputmode="decimal" step="0.01" min="0.01" required>
+    </div>
+    <div class="field">
+      <label for="edit-note">Note</label>
+      <input id="edit-note" name="note" type="text" maxlength="100">
+    </div>
+    <p id="edit-message" class="msg" role="alert" aria-live="polite"></p>
+    <div class="dialog-actions">
+      <button class="btn secondary" type="button" id="edit-cancel">Cancel</button>
+      <button class="btn" type="submit">Save changes</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="password-dialog" aria-labelledby="password-title">
+  <form id="password-form" class="dialog-form" novalidate>
+    <h2 id="password-title">Change password</h2>
+    <div class="field">
+      <label for="pw-current">Current password</label>
+      <input id="pw-current" type="password" autocomplete="current-password" required>
+    </div>
+    <div class="field">
+      <label for="pw-new">New password</label>
+      <input id="pw-new" type="password" autocomplete="new-password" required aria-describedby="pw-hint">
+      <small id="pw-hint" class="hint">8-64 characters. Your other devices will be signed out.</small>
+    </div>
+    <div class="field">
+      <label for="pw-confirm">Confirm new password</label>
+      <input id="pw-confirm" type="password" autocomplete="new-password" required>
+    </div>
+    <p id="password-message" class="msg" role="alert" aria-live="polite"></p>
+    <div class="dialog-actions">
+      <button class="btn secondary" type="button" id="password-cancel">Cancel</button>
+      <button class="btn" type="submit">Change password</button>
+    </div>
+  </form>
+</dialog>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='dashboard.js') }}"></script>{% endblock %}

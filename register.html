@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Create account - Student Expense Tracker{% endblock %}
+{% block content %}
+<section class="card auth-card">
+  <h1>Create your account</h1>
+  <p class="muted">Track where your money goes, one expense at a time.</p>
+  <form id="auth-form" data-mode="register" novalidate>
+    <div class="field">
+      <label for="username">Username</label>
+      <input id="username" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus aria-describedby="username-hint">
+      <small id="username-hint" class="hint">3-20 letters, digits or underscores.</small>
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="new-password" required aria-describedby="password-hint">
+      <small id="password-hint" class="hint">8-64 characters.</small>
+    </div>
+    <div class="field">
+      <label for="confirm">Confirm password</label>
+      <input id="confirm" name="confirm" type="password" autocomplete="new-password" required>
+    </div>
+    <p id="message" class="msg" role="alert" aria-live="polite"></p>
+    <button class="btn" type="submit" id="submit">Create account</button>
+  </form>
+  <p class="auth-switch">Already registered? <a href="{{ url_for('login') }}">Log in</a></p>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='auth.js') }}"></script>{% endblock %}
